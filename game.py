@@ -3,7 +3,7 @@ import simpleAIs
 import sys
 from time import sleep
 
-AI = [simpleAIs.MonteTreeAI(0, 50, 3), simpleAIs.MonteAI(1, 10)]
+AI = [simpleAIs.MonteTreeAI(0, 100, 5), simpleAIs.RandomAI(1)]
 
 print("0:\033[46m  \033[0m 1:\033[43m  \033[49m")
 def printObs(obs, lastRow, lastLine):

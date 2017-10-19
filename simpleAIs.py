@@ -89,31 +89,23 @@ class MonteTreeAI(MonteAI):
         if len(enable) == 0:
             return self.search(state, color^1, depth+1, subtree)
         
-        searchedLen = len(subtree)
-        if len(enable) - searchedLen > 0:
-            subtree.append([0, 0, []])
-            row, line = enable[searchedLen]
-
-            reversi.putStone(state, row, line, color)
-            r = self.search(state, color^1, depth+1, subtree[-1][2])
-            if r == color:
-                subtree[-1][0] += 1
-            else:
-                subtree[-1][1] += 1
-            return r
+        if len(subtree) == 0:
+            # first visit
+            subtree.extend([ [0, 0, []] for _ in enable ])
+    
+        wins = np.array([node[0] for node in subtree])
+        loses = np.array([node[1] for node in subtree])
+        values = beta.rvs(wins + 1, loses + 1)
+        choice = values.argmax()
+        row, line = enable[choice]
+        reversi.putStone(state, row, line, color)
+        r = self.search(state, color^1, depth+1, subtree[choice][2])
+        if r == color:
+            subtree[choice][0] += 1
         else:
-            wins = np.array([node[0] for node in subtree])
-            loses = np.array([node[1] for node in subtree])
-            values = beta.rvs(wins + 1, loses + 1)
-            choice = values.argmax()
-            row, line = enable[choice]
-            reversi.putStone(state, row, line, color)
-            r = self.search(state, color^1, depth+1, subtree[choice][2])
-            if r == color:
-                subtree[choice][0] += 1
-            else:
-                subtree[choice][1] += 1
-            return r
+            subtree[choice][1] += 1
+        return r
+    
     def act(self, state):
         enable = reversi.getPossiblePoints(state, self.color)
         if len(enable) == 0:
