@@ -1,18 +1,14 @@
 import numpy as np
 from copy import deepcopy
 
-def putStone(state, row, line, color, copy=False):
+def putStone(state, row, line, color, flip=True):
     assert color == 0 or color == 1
     opponentColor = color ^ 1
-
-    if copy:
-        ret = deepcopy(state)
-    else:
-        ret = state
     
     if state[row, line] == color or state[row, line] == opponentColor:
-        return False, []
-    flip = False
+        return False
+
+    canflip = False
     
     for _r, _l in [(0,1), (0,-1), (1,0), (-1,0), (1,1), (1,-1), (-1,1), (-1,-1)]:
         opponentExist = False
@@ -25,9 +21,13 @@ def putStone(state, row, line, color, copy=False):
             elif currentPoint == color:
                 if opponentExist:
                     # can flip
-                    flip = True
+                    canflip = True
+                    if not flip:
+                        # just check can flip
+                        return True
+
                     while not (ite_r == row and ite_l == line):
-                        ret[ite_r, ite_l] = color
+                        state[ite_r, ite_l] = color
                         ite_r -= _r
                         ite_l -= _l
                     break
@@ -41,15 +41,15 @@ def putStone(state, row, line, color, copy=False):
             ite_r += _r
             ite_l += _l
         # next direction
-    if flip:
-        ret[row, line] = color
-        return True, ret
+    if canflip and flip:
+        state[row, line] = color
+        return True
     else:
-        return False, []
+        return False
 
 
 def canFlip(state, row, line, color):
-    if putStone(state, row, line, color, copy=True)[0]:
+    if putStone(state, row, line, color, flip=False):
         return True
     else:
         return False
@@ -110,7 +110,7 @@ class ReversiEnv:
         else:
             row = index // 8
             line = index % 8
-            if putStone(self.board, row, line, self.turn)[0] == False:
+            if not putStone(self.board, row, line, self.turn):
                 # invalid put
                 raise
                 return self.board, -1, True, None

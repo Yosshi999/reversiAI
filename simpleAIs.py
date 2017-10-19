@@ -24,19 +24,19 @@ class MonteAI:
     def __init__(self, color, size):
         self.color = color
         self.size = size
+        self.simulateEnv = reversi.ReversiEnv()
+        self.simulateAIs = [RandomAI(c) for c in range(2)]
     
     def simulate(self, state, putPoint, color):
         """
         return winner (if draw: -1)
         """
-        env = reversi.ReversiEnv()
-        env.setStones(state, color)
-        env.turn = color
-        randomAIs = [RandomAI(c) for c in range(2)]
+        self.simulateEnv.setStones(state, color)
+        self.simulateEnv.turn = color
         turn = color
         t = 0
         while True:
-            obs, r, done, info = env.step(putPoint)
+            obs, r, done, info = self.simulateEnv.step(putPoint)
             if done:
                 if r == 1:
                     return turn
@@ -45,7 +45,7 @@ class MonteAI:
                 else: # draw
                     return -1
             turn ^= 1
-            putPoint = randomAIs[turn].act(obs) # next putPoint
+            putPoint = self.simulateAIs[turn].act(obs) # next putPoint
 
     def act(self, state):
         enable = reversi.getPossiblePoints(state, self.color)
@@ -92,8 +92,9 @@ class MonteTreeAI(MonteAI):
         if len(enable) - searchedLen > 0:
             subtree.append([0, 0, []])
             row, line = enable[searchedLen]
-            newState = reversi.putStone(state, row, line, color, copy=True)[1]
-            r = self.search(newState, color^1, depth+1, subtree[-1][2])
+
+            reversi.putStone(state, row, line, color)
+            r = self.search(state, color^1, depth+1, subtree[-1][2])
             if r == color:
                 subtree[-1][0] += 1
             else:
@@ -105,8 +106,8 @@ class MonteTreeAI(MonteAI):
             values = beta.rvs(wins + 1, loses + 1)
             choice = values.argmax()
             row, line = enable[choice]
-            newState = reversi.putStone(state, row, line, color, copy=True)[1]
-            r = self.search(newState, color^1, depth+1, subtree[choice][2])
+            reversi.putStone(state, row, line, color)
+            r = self.search(state, color^1, depth+1, subtree[choice][2])
             if r == color:
                 subtree[choice][0] += 1
             else:
@@ -120,7 +121,8 @@ class MonteTreeAI(MonteAI):
             return enable[0][0] * 8 + enable[0][1]
         self.tree = []
         for i in range(self.maxSize):
-            self.search(state, self.color, 1, self.tree)
+            tmpState = deepcopy(state)
+            self.search(tmpState, self.color, 1, self.tree)
         wins = np.array([node[0] for node in self.tree])
         loses = np.array([node[1] for node in self.tree])
         # best = (wins + loses).argmax()
