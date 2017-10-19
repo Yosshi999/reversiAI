@@ -81,7 +81,7 @@ class ReversiEnv:
         self.possiblePoints = [getPossiblePoints(self.board, c) for c in range(2)]
     
     def setStones(self, arr, turn):
-        self.board = deepcopy(arr)
+        self.board = arr
         for c in range(2):
             self.stones[c] = len(np.where(self.board == c)[0])
             self.possiblePoints[c] = getPossiblePoints(self.board, c)

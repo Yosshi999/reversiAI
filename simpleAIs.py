@@ -56,7 +56,8 @@ class MonteAI:
         for row, line in enable:
             win = 0
             for i in range(self.size):
-                r = self.simulate(state, row*8+line, self.color)
+                tmpState = deepcopy(state)
+                r = self.simulate(tmpState, row*8+line, self.color)
                 if r == self.color: # winner is me
                     win += 1
             if maxWin == -1 or maxWin < win:
