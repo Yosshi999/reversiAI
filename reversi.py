@@ -112,6 +112,7 @@ class ReversiEnv:
             line = index % 8
             if putStone(self.board, row, line, self.turn)[0] == False:
                 # invalid put
+                raise
                 return self.board, -1, True, None
             else:
                 # valid put

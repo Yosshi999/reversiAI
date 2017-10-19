@@ -31,6 +31,7 @@ class MonteAI:
         """
         env = reversi.ReversiEnv()
         env.setStones(state, color)
+        env.turn = color
         randomAIs = [RandomAI(c) for c in range(2)]
         turn = color
         t = 0
@@ -115,12 +116,15 @@ class MonteTreeAI(MonteAI):
         enable = reversi.getPossiblePoints(state, self.color)
         if len(enable) == 0:
             return 65
+        if len(enable) == 1:
+            return enable[0][0] * 8 + enable[0][1]
         self.tree = []
         for i in range(self.maxSize):
             self.search(state, self.color, 1, self.tree)
         wins = np.array([node[0] for node in self.tree])
         loses = np.array([node[1] for node in self.tree])
-        best = (wins + loses).argmax()
+        # best = (wins + loses).argmax()
+        best = beta.median(wins+1, loses+1).argmax()
         return enable[best][0]*8 + enable[best][1]
 
 """        for ite in range(len(enable)):

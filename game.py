@@ -3,7 +3,7 @@ import simpleAIs
 import sys
 from time import sleep
 
-AI = [simpleAIs.MonteTreeAI(0, 10, 1), simpleAIs.MonteTreeAI(1, 10, 3)]
+AI = [simpleAIs.MonteTreeAI(0, 10, 1), simpleAIs.RandomAI(1)]
 
 print("0:\033[46m  \033[0m 1:\033[43m  \033[49m")
 def printObs(obs):
@@ -27,8 +27,10 @@ for i in range(1, n_episodes+1):
     turn = 0
     obs = env.board
     done = False
-
-    print("\033[8B", end="")
+    
+    print("wins:", win)
+    # print("\033[8B", end="")
+    print("\n"*7)
     print("\033[8A\r", end="")
     printObs(obs)
 
