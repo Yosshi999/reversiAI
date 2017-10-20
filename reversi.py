@@ -82,6 +82,7 @@ class ReversiEnv:
     
     def setStones(self, arr, turn):
         self.board = arr
+        self.turn = turn
         for c in range(2):
             self.stones[c] = len(np.where(self.board == c)[0])
             self.possiblePoints[c] = getPossiblePoints(self.board, c)
@@ -112,7 +113,6 @@ class ReversiEnv:
             line = index % 8
             if not putStone(self.board, row, line, self.turn):
                 # invalid put
-                raise
                 return self.board, -1, True, None
             else:
                 # valid put

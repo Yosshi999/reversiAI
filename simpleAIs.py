@@ -2,6 +2,7 @@
 simpleAIs
     act: return the index
 """
+from abc import ABCMeta, abstractmethod
 
 import reversi
 from copy import deepcopy
@@ -9,10 +10,66 @@ import random
 import numpy as np
 from scipy.stats import beta
 
-class RandomAI:
-    def __init__(self, color):
+def allSearch(state, color, enables, nowDepth, maxDepth):
+        """
+        全探索
+
+        enables: list
+        colorから見た勝ち石の数listを返す
+        """
+        if nowDepth >= maxDepth:
+            # stop searching
+            return [len(np.where(state == color)[0]) - len(np.where(state == color^1)[0])]
+
+        myWins = []
+        if len(enables) == 0:
+            # pass
+            opponentEnables = reversi.getPossiblePoints(state, color^1)
+            if len(opponentEnables) == 0:
+                # game set
+                myWins.append(len(np.where(state == color)[0]) - len(np.where(state == color^1)[0]))
+            else:
+                opponentWins = allSearch(state, color^1, opponentEnables, nowDepth+1, maxDepth)
+                mybest = min(opponentWins)
+                myWins.append(-mybest)
+        else:
+            board = deepcopy(state)
+            for row, line in enables:
+                reversi.putStone(board, row, line, color)
+                opponentEnables = reversi.getPossiblePoints(board, color^1)
+                opponentWins = allSearch(board, color^1, opponentEnables, nowDepth+1, maxDepth)
+                mybest = min(opponentWins)
+                myWins.append(-mybest)
+        return myWins
+
+class AI:
+    def __init__(self, color, allSearchDepth=0):
         self.color = color
+        self.allSearchDepth = allSearchDepth
+    
     def act(self, state):
+        leftStones = len(np.where(state == -1)[0])
+        if leftStones <= self.allSearchDepth:
+            enables = reversi.getPossiblePoints(state, self.color)
+            if len(enables) == 0:
+                return 65
+            myWins = allSearch(state, self.color, enables, 0, self.allSearchDepth)
+            choice = np.argmax(myWins)
+            row, line = enables[choice]
+            return row * 8 + line
+        else:
+            return self.play(state)
+    
+    @abstractmethod
+    def play(self, state):
+        pass
+
+
+class RandomAI(AI):
+    def __init__(self, color, allSearchDepth=0):
+        super(RandomAI, self).__init__(color, allSearchDepth)
+        
+    def play(self, state):
         enable = reversi.getPossiblePoints(state, self.color)
         if len(enable) == 0:
             return 65
@@ -20,19 +77,25 @@ class RandomAI:
             put = random.choice(enable)
             return put[0]*8 + put[1]
 
-class MonteAI:
-    def __init__(self, color, size):
-        self.color = color
+class MonteAI(AI):
+    def __init__(self, color, size, allSearchDepth=0, limit=5):
+        super(MonteAI, self).__init__(color, allSearchDepth)
         self.size = size
         self.simulateEnv = reversi.ReversiEnv()
-        self.simulateAIs = [RandomAI(c) for c in range(2)]
-    
+        self.allSearchDepth_simulate = limit
+        self.simulateAIs = [
+            RandomAI(c, self.allSearchDepth_simulate) for c in range(2)
+        ]
+        
     def simulate(self, state, putPoint, color):
         """
+        途中までランダムに打ち、終盤(残りlimit手)は全探索を行う
+        頻繁に呼ぶのでlimitは少なめ
+
         return winner (if draw: -1)
         """
         self.simulateEnv.setStones(state, color)
-        self.simulateEnv.turn = color
+        
         turn = color
         t = 0
         while True:
@@ -45,9 +108,21 @@ class MonteAI:
                 else: # draw
                     return -1
             turn ^= 1
+            leftStones = len(np.where(obs == -1)[0])
+            """if leftStones <= self.allSearchDepth_simulate:
+                enables = reversi.getPossiblePoints(obs, turn)
+                r = max(allSearch(obs, turn, enables, 0, self.allSearchDepth_simulate))
+                if r > 0:
+                    return turn
+                elif r < 0:
+                    return turn^1
+                else: # draw
+                    return -1
+            else:
+                putPoint = self.simulateAIs[turn].act(obs) # next putPoint"""
             putPoint = self.simulateAIs[turn].act(obs) # next putPoint
-
-    def act(self, state):
+    
+    def play(self, state):
         enable = reversi.getPossiblePoints(state, self.color)
         if len(enable) == 0:
             return 65
@@ -66,8 +141,8 @@ class MonteAI:
         return putPoint
 
 class MonteTreeAI(MonteAI):
-    def __init__(self, color, maxSize, depth):
-        super(MonteTreeAI, self).__init__(color, maxSize)
+    def __init__(self, color, maxSize, depth, allSearchDepth=0, limit=5):
+        super(MonteTreeAI, self).__init__(color, maxSize, allSearchDepth, limit)
         self.maxSize = maxSize
         self.depth = depth
         self.tree = [] # [[win, lose, children],...]
@@ -106,7 +181,7 @@ class MonteTreeAI(MonteAI):
             subtree[choice][1] += 1
         return r
     
-    def act(self, state):
+    def play(self, state):
         enable = reversi.getPossiblePoints(state, self.color)
         if len(enable) == 0:
             return 65
